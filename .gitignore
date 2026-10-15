@@ -12,9 +12,3 @@
 *.aab
 app/build/
 */build/
-
-# Signing keys and local secrets
-*.jks
-*.keystore
-keystore.properties
-.env

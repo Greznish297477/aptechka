@@ -21,37 +21,24 @@ android {
         }
     }
 
-    // Не храните keystore и пароли в репозитории.
-    // Для подписанного release задайте secrets в GitHub Actions:
-    // ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
-    val releaseStoreFile = System.getenv("ANDROID_KEYSTORE_FILE")
-    val releaseStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-    val releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
-    val releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
-
-    if (!releaseStoreFile.isNullOrBlank() &&
-        !releaseStorePassword.isNullOrBlank() &&
-        !releaseKeyAlias.isNullOrBlank() &&
-        !releaseKeyPassword.isNullOrBlank()
-    ) {
-        signingConfigs {
-            create("release") {
-                storeFile = file(releaseStoreFile)
-                storePassword = releaseStorePassword
-                keyAlias = releaseKeyAlias
-                keyPassword = releaseKeyPassword
-            }
+    // Единый keystore проекта — одна подпись для всех сборок (CI и локально)
+    // Важно: не менять, иначе обновления не установятся поверх старой версии
+    signingConfigs {
+        create("release") {
+            storeFile = file("keystore/aptechka.jks")
+            storePassword = "aptechka2024"
+            keyAlias = "aptechka"
+            keyPassword = "aptechka2024"
         }
     }
 
     buildTypes {
         debug {
+            signingConfig = signingConfigs.getByName("release")
         }
         release {
             isMinifyEnabled = false
-            if (!releaseStoreFile.isNullOrBlank() && !releaseStorePassword.isNullOrBlank() && !releaseKeyAlias.isNullOrBlank() && !releaseKeyPassword.isNullOrBlank()) {
-                signingConfig = signingConfigs.getByName("release")
-            }
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

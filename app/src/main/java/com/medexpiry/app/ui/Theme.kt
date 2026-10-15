@@ -21,6 +21,32 @@ private data class Palette(
     val onSecondaryContainer: Color
 )
 
+// Формирует палитру из выбранного пользователем цвета.
+// Смешивание выполняется напрямую по каналам, без дополнительных зависимостей.
+private fun mixColors(from: Color, to: Color, amount: Float): Color {
+    val t = amount.coerceIn(0f, 1f)
+    return Color(
+        red = from.red + (to.red - from.red) * t,
+        green = from.green + (to.green - from.green) * t,
+        blue = from.blue + (to.blue - from.blue) * t,
+        alpha = from.alpha + (to.alpha - from.alpha) * t
+    )
+}
+
+private fun paletteFromColor(primary: Color): Palette {
+    val opaquePrimary = primary.copy(alpha = 1f)
+    val secondary = mixColors(opaquePrimary, Color(0xFF00897B), 0.35f)
+    return Palette(
+        primary = opaquePrimary,
+        primaryLight = mixColors(opaquePrimary, Color.White, 0.38f),
+        primaryContainer = mixColors(opaquePrimary, Color.White, 0.88f),
+        onPrimaryContainer = mixColors(opaquePrimary, Color.Black, 0.48f),
+        secondary = secondary,
+        secondaryContainer = mixColors(secondary, Color.White, 0.80f),
+        onSecondaryContainer = mixColors(secondary, Color.Black, 0.48f)
+    )
+}
+
 private fun palette(style: ColorStyle): Palette = when (style) {
     ColorStyle.INDIGO -> Palette(
         Color(0xFF3F51B5), Color(0xFF7986CB), Color(0xFFE8EAF6), Color(0xFF1A237E),
