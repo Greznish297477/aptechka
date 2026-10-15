@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Аптечка</string>
+    <string name="add_medicine">Добавить лекарство</string>
+    <string name="edit_medicine">Редактировать</string>
+    <string name="name">Название</string>
+    <string name="expiration_date">Срок годности</string>
+    <string name="quantity">Количество</string>
+    <string name="notes">Заметки</string>
+    <string name="save">Сохранить</string>
+    <string name="cancel">Отмена</string>
+    <string name="delete">Удалить</string>
+    <string name="no_medicines">Нет добавленных лекарств</string>
+    <string name="days_left">Осталось дней: %d</string>
+    <string name="expired">Истёк срок!</string>
+    <string name="notification_title">Срок годности лекарства</string>
+    <string name="notification_channel_name">Уведомления о сроках</string>
+    <string name="notification_channel_desc">Напоминания о приближающемся сроке годности лекарств</string>
+</resources>
