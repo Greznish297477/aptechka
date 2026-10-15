@@ -18,7 +18,7 @@ import java.net.URL
 
 /**
  * Автообновление из GitHub Releases.
- * Скачивает APK → ставит поверх текущей версии (тот же applicationId) → удаляет APK.
+ * Скачивает APK → устанавливает поверх текущего приложения → удаляет APK.
  */
 object AppUpdater {
 
@@ -26,7 +26,7 @@ object AppUpdater {
     const val GITHUB_REPO = "aptechka"
 
     private const val USER_AGENT = "Aptechka-Android/1.0"
-    private const val BUFFER_SIZE = 256 * 1024 // 256 KB — быстрее загрузка
+    private const val BUFFER_SIZE = 256 * 1024
 
     const val ACTION_INSTALL_STATUS = "com.medexpiry.app.INSTALL_STATUS"
 
@@ -64,16 +64,24 @@ object AppUpdater {
     }
 
     private fun updatesDir(context: Context): File {
-        val dir = File(context.cacheDir, "updates")
+        // filesDir надёжнее cacheDir: система не удалит файл во время установки
+        val dir = File(context.filesDir, "updates")
         if (!dir.exists()) dir.mkdirs()
         return dir
     }
 
     fun cleanupDownloadedApks(context: Context) {
         try {
-            updatesDir(context).listFiles()?.forEach { f ->
-                if (f.name.endsWith(".apk", ignoreCase = true) || f.name.endsWith(".tmp")) {
-                    f.delete()
+            listOf(
+                File(context.filesDir, "updates"),
+                File(context.cacheDir, "updates")
+            ).forEach { dir ->
+                if (dir.exists()) {
+                    dir.listFiles()?.forEach { f ->
+                        if (f.name.endsWith(".apk", true) || f.name.endsWith(".tmp", true)) {
+                            f.delete()
+                        }
+                    }
                 }
             }
         } catch (_: Exception) { }
@@ -96,7 +104,6 @@ object AppUpdater {
             val assets = root.optJSONArray("assets")
                 ?: return@withContext CheckResult.Error("В релизе нет файлов")
 
-            // Приоритет: release APK (меньше и «правильная» сборка) → любой .apk
             var bestUrl = ""
             var bestName = "Aptechka-update.apk"
             var bestScore = -1
@@ -108,10 +115,9 @@ object AppUpdater {
                 if (!name.endsWith(".apk", true) || url.isBlank()) continue
 
                 val score = when {
-                    name.contains("release", true) && !name.contains("unsigned", true) -> 100
                     name.contains("Aptechka-release", true) -> 100
                     name.contains("app-release", true) -> 90
-                    name.contains("release", true) -> 80
+                    name.contains("release", true) && !name.contains("unsigned", true) -> 80
                     name.contains("debug", true) -> 10
                     else -> 50
                 }
@@ -134,13 +140,7 @@ object AppUpdater {
             }
 
             CheckResult.Available(
-                UpdateInfo(
-                    tagName = tag,
-                    versionName = remoteVersion,
-                    apkUrl = bestUrl,
-                    releaseNotes = notes,
-                    fileName = bestName
-                )
+                UpdateInfo(tag, remoteVersion, bestUrl, notes, bestName)
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -148,9 +148,6 @@ object AppUpdater {
         }
     }
 
-    /**
-     * Быстрое скачивание: большой буфер, без лишних пауз.
-     */
     suspend fun downloadApk(
         context: Context,
         info: UpdateInfo,
@@ -177,8 +174,7 @@ object AppUpdater {
                     while (input.read(buf).also { read = it } != -1) {
                         output.write(buf, 0, read)
                         done += read
-                        // Обновляем прогресс не чаще чем раз на ~2% или 256KB
-                        if (total > 0 && (done - lastReport >= BUFFER_SIZE || done == total)) {
+                        if (total > 0 && (done - lastReport >= BUFFER_SIZE || done >= total)) {
                             lastReport = done
                             onProgress((done.toFloat() / total).coerceIn(0f, 1f))
                         }
@@ -193,6 +189,13 @@ object AppUpdater {
                 tmp.copyTo(out, overwrite = true)
                 tmp.delete()
             }
+
+            // Минимальная проверка: APK не пустой
+            if (!out.exists() || out.length() < 10_000) {
+                out.delete()
+                return@withContext null
+            }
+
             onProgress(1f)
             out
         } catch (e: Exception) {
@@ -218,54 +221,23 @@ object AppUpdater {
     }
 
     /**
-     * Установка **поверх** текущего приложения (обновление).
-     * Использует PackageInstaller — система заменяет старую версию, данные сохраняются.
+     * Установка поверх текущего приложения.
+     * Основной путь — системный экран установки (Intent): надёжно заменяет версию.
+     * PackageInstaller — запасной вариант.
      */
     fun installApk(context: Context, apkFile: File): Boolean {
-        if (!apkFile.exists()) return false
+        if (!apkFile.exists() || apkFile.length() < 10_000) return false
+
+        // 1) Самый надёжный способ для обычных приложений
+        if (installWithIntent(context, apkFile)) return true
+
+        // 2) Запасной путь
         return try {
             installWithPackageInstaller(context, apkFile)
         } catch (e: Exception) {
             e.printStackTrace()
-            // запасной путь — Intent (тоже обновляет при том же applicationId + подписи)
-            installWithIntent(context, apkFile)
+            false
         }
-    }
-
-    private fun installWithPackageInstaller(context: Context, apkFile: File): Boolean {
-        val installer = context.packageManager.packageInstaller
-        val params = PackageInstaller.SessionParams(
-            PackageInstaller.SessionParams.MODE_FULL_INSTALL
-        )
-        // Явно указываем пакет — система обновит существующее приложение
-        params.setAppPackageName(context.packageName)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
-        }
-
-        val sessionId = installer.createSession(params)
-        val session = installer.openSession(sessionId)
-
-        apkFile.inputStream().use { input ->
-            session.openWrite("base.apk", 0, apkFile.length()).use { out ->
-                val buf = ByteArray(BUFFER_SIZE)
-                var n: Int
-                while (input.read(buf).also { n = it } != -1) {
-                    out.write(buf, 0, n)
-                }
-                session.fsync(out)
-            }
-        }
-
-        val callback = Intent(context, InstallResultReceiver::class.java).apply {
-            action = ACTION_INSTALL_STATUS
-        }
-        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
-                (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0)
-        val pi = PendingIntent.getBroadcast(context, sessionId, callback, flags)
-        session.commit(pi.intentSender)
-        session.close()
-        return true
     }
 
     private fun installWithIntent(context: Context, apkFile: File): Boolean {
@@ -275,17 +247,68 @@ object AppUpdater {
                 "${context.packageName}.fileprovider",
                 apkFile
             )
+
+            // Даём право читать URI установщику пакетов
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/vnd.android.package-archive")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
+
+            // Явно выдаём permission всем приложениям, которые могут обработать Intent
+            val resInfo = context.packageManager.queryIntentActivities(intent, 0)
+            for (resolveInfo in resInfo) {
+                val pkg = resolveInfo.activityInfo.packageName
+                context.grantUriPermission(
+                    pkg,
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+
             context.startActivity(intent)
             true
         } catch (e: Exception) {
             e.printStackTrace()
             false
         }
+    }
+
+    private fun installWithPackageInstaller(context: Context, apkFile: File): Boolean {
+        val installer = context.packageManager.packageInstaller
+        val params = PackageInstaller.SessionParams(
+            PackageInstaller.SessionParams.MODE_FULL_INSTALL
+        )
+        params.setAppPackageName(context.packageName)
+        // Не ставим USER_ACTION_NOT_REQUIRED — для обычных приложений это часто ломает установку
+
+        val sessionId = installer.createSession(params)
+        installer.openSession(sessionId).use { session ->
+            apkFile.inputStream().use { input ->
+                session.openWrite("base.apk", 0, apkFile.length()).use { out ->
+                    val buf = ByteArray(BUFFER_SIZE)
+                    var n: Int
+                    while (input.read(buf).also { n = it } != -1) {
+                        out.write(buf, 0, n)
+                    }
+                    session.fsync(out)
+                }
+            }
+
+            val callback = Intent(context, InstallResultReceiver::class.java).apply {
+                action = ACTION_INSTALL_STATUS
+            }
+            val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        PendingIntent.FLAG_MUTABLE
+                    } else {
+                        0
+                    }
+            val pi = PendingIntent.getBroadcast(context, sessionId, callback, flags)
+            session.commit(pi.intentSender)
+        }
+        return true
     }
 
     fun isNewer(remote: String, local: String): Boolean {
@@ -306,7 +329,6 @@ object AppUpdater {
 
     private fun openDownload(urlStr: String): HttpURLConnection {
         var current = urlStr
-        // Следуем редиректам вручную (GitHub иногда редиректит)
         for (i in 0 until 5) {
             val conn = (URL(current).openConnection() as HttpURLConnection).apply {
                 instanceFollowRedirects = false
@@ -354,16 +376,14 @@ object AppUpdater {
     }
 }
 
-/**
- * Результат установки через PackageInstaller.
- * Удаляет APK после успеха / неудачи, чтобы не засорять память.
- */
 class InstallResultReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)
+        val status = intent.getIntExtra(
+            PackageInstaller.EXTRA_STATUS,
+            PackageInstaller.STATUS_FAILURE
+        )
         when (status) {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
-                // Нужно подтверждение пользователя
                 val confirm = if (Build.VERSION.SDK_INT >= 33) {
                     intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
                 } else {
@@ -371,13 +391,22 @@ class InstallResultReceiver : BroadcastReceiver() {
                     intent.getParcelableExtra(Intent.EXTRA_INTENT)
                 }
                 confirm?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                if (confirm != null) context.startActivity(confirm)
+                if (confirm != null) {
+                    try {
+                        context.startActivity(confirm)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
             }
-            PackageInstaller.STATUS_SUCCESS -> {
-                AppUpdater.cleanupDownloadedApks(context)
-            }
-            else -> {
-                // Ошибка — всё равно чистим APK
+            PackageInstaller.STATUS_SUCCESS,
+            PackageInstaller.STATUS_FAILURE,
+            PackageInstaller.STATUS_FAILURE_ABORTED,
+            PackageInstaller.STATUS_FAILURE_BLOCKED,
+            PackageInstaller.STATUS_FAILURE_CONFLICT,
+            PackageInstaller.STATUS_FAILURE_INCOMPATIBLE,
+            PackageInstaller.STATUS_FAILURE_INVALID,
+            PackageInstaller.STATUS_FAILURE_STORAGE -> {
                 AppUpdater.cleanupDownloadedApks(context)
             }
         }

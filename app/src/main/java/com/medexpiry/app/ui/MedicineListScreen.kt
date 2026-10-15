@@ -133,11 +133,16 @@ fun MedicineListScreen(
             }
             showUpdateDialog = false
             val ok = AppUpdater.installApk(context, file)
-            if (!ok) {
+            if (ok) {
+                Toast.makeText(
+                    context,
+                    "Откройте установщик и нажмите «Обновить» / «Установить»",
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
                 Toast.makeText(context, "Не удалось запустить установку", Toast.LENGTH_LONG).show()
                 AppUpdater.cleanupDownloadedApks(context)
             }
-            // APK удалится при следующем запуске приложения
         }
     }
 
