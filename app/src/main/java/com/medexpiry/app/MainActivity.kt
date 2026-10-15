@@ -21,6 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.medexpiry.app.ui.*
+import com.medexpiry.app.util.AppUpdater
 import com.medexpiry.app.worker.NotificationScheduler
 
 class MainActivity : ComponentActivity() {
@@ -40,6 +41,9 @@ class MainActivity : ComponentActivity() {
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+
+        // Удаляем старые APK обновлений, чтобы не засорять память
+        AppUpdater.cleanupDownloadedApks(this)
 
         NotificationScheduler.scheduleAll(this)
 

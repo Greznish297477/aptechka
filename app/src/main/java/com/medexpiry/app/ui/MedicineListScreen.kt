@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.WarningAmber
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.medexpiry.app.data.Medicine
 import com.medexpiry.app.data.MedicineStatus
+import com.medexpiry.app.util.AppUpdater
 import com.medexpiry.app.util.BackupManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -61,6 +63,76 @@ fun MedicineListScreen(
     var showImportDialog by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     var isBusy by remember { mutableStateOf(false) }
+    var updateInfo by remember { mutableStateOf<AppUpdater.UpdateInfo?>(null) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var updateChecking by remember { mutableStateOf(false) }
+    var updateDownloading by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableStateOf(0f) }
+    var updateMessage by remember { mutableStateOf<String?>(null) }
+
+    // Автопроверка обновлений при открытии
+    LaunchedEffect(Unit) {
+        AppUpdater.cleanupDownloadedApks(context)
+        updateChecking = true
+        when (val r = AppUpdater.checkForUpdate(context)) {
+            is AppUpdater.CheckResult.Available -> {
+                updateInfo = r.info
+                showUpdateDialog = true
+            }
+            is AppUpdater.CheckResult.UpToDate -> { }
+            is AppUpdater.CheckResult.Error -> { /* тихо при автопроверке */ }
+        }
+        updateChecking = false
+    }
+
+    fun runUpdateCheck(manual: Boolean = true) {
+        scope.launch {
+            updateChecking = true
+            updateMessage = null
+            when (val r = AppUpdater.checkForUpdate(context)) {
+                is AppUpdater.CheckResult.Available -> {
+                    updateInfo = r.info
+                    showUpdateDialog = true
+                }
+                is AppUpdater.CheckResult.UpToDate -> {
+                    if (manual) {
+                        Toast.makeText(context, "У вас актуальная версия (${AppUpdater.currentVersionName(context)})", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                is AppUpdater.CheckResult.Error -> {
+                    if (manual) {
+                        Toast.makeText(context, r.message, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            updateChecking = false
+        }
+    }
+
+    fun startDownloadAndInstall(info: AppUpdater.UpdateInfo) {
+        scope.launch {
+            if (!AppUpdater.canInstallPackages(context)) {
+                Toast.makeText(context, "Разрешите установку из этого источника", Toast.LENGTH_LONG).show()
+                AppUpdater.openInstallPermissionSettings(context)
+                return@launch
+            }
+            updateDownloading = true
+            downloadProgress = 0f
+            val file = AppUpdater.downloadApk(context, info) { p -> downloadProgress = p }
+            updateDownloading = false
+            if (file == null) {
+                Toast.makeText(context, "Не удалось скачать обновление", Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            showUpdateDialog = false
+            val ok = AppUpdater.installApk(context, file)
+            if (!ok) {
+                Toast.makeText(context, "Не удалось запустить установку", Toast.LENGTH_LONG).show()
+                AppUpdater.cleanupDownloadedApks(context)
+            }
+            // APK удалится при следующем запуске приложения
+        }
+    }
 
     val filtered = remember(medicines, searchQuery) {
         if (searchQuery.isBlank()) medicines
@@ -184,6 +256,16 @@ fun MedicineListScreen(
                                     Icon(Icons.Outlined.FileDownload, contentDescription = null)
                                 }
                             )
+                            DropdownMenuItem(
+                                text = { Text("Проверить обновления") },
+                                onClick = {
+                                    menuExpanded = false
+                                    runUpdateCheck(true)
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Outlined.SystemUpdate, contentDescription = null)
+                                }
+                            )
                         }
                     }
                 },
@@ -297,6 +379,53 @@ fun MedicineListScreen(
                 }
             }
         }
+    }
+
+    // Диалог обновления
+    if (showUpdateDialog && updateInfo != null) {
+        val info = updateInfo!!
+        AlertDialog(
+            onDismissRequest = {
+                if (!updateDownloading) showUpdateDialog = false
+            },
+            title = { Text("Доступно обновление", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("Версия ${info.versionName} (сейчас ${AppUpdater.currentVersionName(context)})")
+                    if (info.releaseNotes.isNotBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(info.releaseNotes.take(300), style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (updateDownloading) {
+                        Spacer(Modifier.height(16.dp))
+                        Text("Скачивание… ${(downloadProgress * 100).toInt()}%")
+                        Spacer(Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = { downloadProgress },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { startDownloadAndInstall(info) },
+                    enabled = !updateDownloading
+                ) {
+                    Text(if (updateDownloading) "Скачивание…" else "Обновить")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showUpdateDialog = false },
+                    enabled = !updateDownloading
+                ) { Text("Позже") }
+            }
+        )
+    }
+
+    if (updateChecking && !showUpdateDialog) {
+        // лёгкий индикатор не блокирует UI
     }
 
     // Диалог: заменить или добавить к существующим
