@@ -46,3 +46,18 @@ APK: `app/build/outputs/apk/debug/app-debug.apk`
 
 ---
 Сделано с заботой о вашей аптечке 💊
+
+## GitHub Actions — автоматическая сборка APK
+
+При каждом push в `main` GitHub собирает APK.
+
+### Скачать APK после сборки
+1. Открой вкладку **Actions** в репозитории
+2. Выбери последний успешный workflow **Build APK**
+3. Внизу в **Artifacts** скачай `aptechka-debug-apk` или `aptechka-release-apk`
+
+### Опубликовать Release с APK
+1. **Releases → Create a new release**
+2. Tag: например `v1.0.0`
+3. Publish release
+4. Actions соберёт APK и прикрепит к релизу автоматически

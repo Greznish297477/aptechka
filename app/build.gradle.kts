@@ -21,9 +21,21 @@ android {
         }
     }
 
+    // Подпись release debug-ключом — APK сразу ставится на телефон (для CI / GitHub Releases)
+    signingConfigs {
+        create("release") {
+            // Используем стандартный debug keystore Android SDK / CI
+            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
