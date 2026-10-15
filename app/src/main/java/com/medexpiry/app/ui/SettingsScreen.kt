@@ -71,7 +71,7 @@ fun SettingsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    containerColor = if (settings.liquidGlass) MaterialTheme.colorScheme.primary.copy(alpha = 0.78f) else MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
@@ -217,6 +217,14 @@ fun SettingsScreen(
                         )
                     }
                 }
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Spacer(Modifier.height(8.dp))
+                SwitchRow(
+                    "Liquid Glass",
+                    "Стеклянные полупрозрачные карточки и мягкий градиентный фон",
+                    settings.liquidGlass
+                ) { enabled -> preferences.update { it.copy(liquidGlass = enabled) } }
             }
 
             SectionTitle("Список")

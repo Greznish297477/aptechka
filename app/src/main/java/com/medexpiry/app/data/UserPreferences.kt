@@ -47,7 +47,9 @@ data class AppSettings(
     // Дополнительные параметры списка; значения по умолчанию сохраняют прежнее поведение
     val searchNotes: Boolean = true,
     val showExpiredMedicines: Boolean = true,
-    val showMedicineCount: Boolean = true
+    val showMedicineCount: Boolean = true,
+    /** Полупрозрачное оформление Liquid Glass */
+    val liquidGlass: Boolean = false
 )
 
 class UserPreferences(context: Context) {
@@ -96,7 +98,8 @@ class UserPreferences(context: Context) {
             customPrimaryColor = prefs.getInt(KEY_CUSTOM_COLOR, 0),
             searchNotes = prefs.getBoolean(KEY_SEARCH_NOTES, true),
             showExpiredMedicines = prefs.getBoolean(KEY_SHOW_EXPIRED, true),
-            showMedicineCount = prefs.getBoolean(KEY_SHOW_COUNT, true)
+            showMedicineCount = prefs.getBoolean(KEY_SHOW_COUNT, true),
+            liquidGlass = prefs.getBoolean(KEY_LIQUID_GLASS, false)
         )
     }
 
@@ -119,6 +122,7 @@ class UserPreferences(context: Context) {
             .putBoolean(KEY_SEARCH_NOTES, s.searchNotes)
             .putBoolean(KEY_SHOW_EXPIRED, s.showExpiredMedicines)
             .putBoolean(KEY_SHOW_COUNT, s.showMedicineCount)
+            .putBoolean(KEY_LIQUID_GLASS, s.liquidGlass)
             .apply()
     }
 
@@ -141,6 +145,7 @@ class UserPreferences(context: Context) {
         private const val KEY_SEARCH_NOTES = "search_notes"
         private const val KEY_SHOW_EXPIRED = "show_expired_medicines"
         private const val KEY_SHOW_COUNT = "show_medicine_count"
+        private const val KEY_LIQUID_GLASS = "liquid_glass"
 
         @Volatile private var instance: UserPreferences? = null
 
