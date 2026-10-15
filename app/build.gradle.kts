@@ -12,8 +12,8 @@ android {
         applicationId = "com.medexpiry.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 7
-        versionName = "1.1.4"
+        versionCode = 8
+        versionName = "1.1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -21,20 +21,19 @@ android {
         }
     }
 
-    // Подпись release debug-ключом — APK сразу ставится на телефон (для CI / GitHub Releases)
+    // Единый keystore проекта — одна подпись для всех сборок (CI и локально)
+    // Важно: не менять, иначе обновления не установятся поверх старой версии
     signingConfigs {
         create("release") {
-            // Используем стандартный debug keystore Android SDK / CI
-            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+            storeFile = file("keystore/aptechka.jks")
+            storePassword = "aptechka2024"
+            keyAlias = "aptechka"
+            keyPassword = "aptechka2024"
         }
     }
 
     buildTypes {
         debug {
-            // Та же подпись, что и release — обновление всегда заменяет приложение
             signingConfig = signingConfigs.getByName("release")
         }
         release {
