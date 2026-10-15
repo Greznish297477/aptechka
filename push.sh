@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Пуш в main. Использование: ./push.sh ["сообщение коммита"]
-set -e
+# Отправить изменения в GitHub: bash push.sh ["сообщение коммита"]
+set -Eeuo pipefail
 cd "$(dirname "$0")"
-msg="${1:-Update $(date '+%Y-%m-%d %H:%M')}"
+git config user.name "Greznish297477"
+git config user.email "dedushkadanil8@gmail.com"
 git add .
-if [ -n "$(git status --porcelain)" ]; then
-  git commit -m "$msg"
+if ! git diff --cached --quiet; then
+  git commit -m "${1:-Update $(date '+%Y-%m-%d %H:%M')}"
 else
   echo "Нет изменений для коммита."
 fi
-git push -u origin main
-echo "Готово."
+git push -u origin HEAD:main

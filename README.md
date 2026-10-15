@@ -79,3 +79,19 @@ APK: `app/build/outputs/apk/debug/app-debug.apk`
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
+
+## Загрузка в GitHub и создание Release
+
+В репозитории должен существовать `Greznish297477/aptechka` (если имя другое, передай URL вторым аргументом). В терминале из папки проекта:
+
+```bash
+bash publish-release.sh 1.1.6
+```
+
+Скрипт настроит Git-автора `Greznish297477 <dedushkadanil8@gmail.com>`, отправит ветку `main` и создаст тег `v1.1.6`. Для следующего релиза используй новую версию, например `bash publish-release.sh 1.1.7`. Автор коммита/тега не меняет владельца GitHub-аккаунта: для отправки потребуется авторизация GitHub.
+
+### Подпись APK
+
+Keystore и пароль не должны храниться в репозитории. Без настроенных секретов Actions соберёт APK без release-подписи. Для подписанного релиза добавь в **Settings → Secrets and variables → Actions** секреты `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. `ANDROID_KEYSTORE_BASE64` — содержимое keystore в Base64. Не публикуй пароли или сам keystore.
+
+Если старый `app/keystore/aptechka.jks` уже попадал в публичный репозиторий, удали его из истории и считай ключ скомпрометированным; для обновления уже установленного приложения нужен тот же безопасно сохранённый ключ подписи.

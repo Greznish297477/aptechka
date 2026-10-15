@@ -34,6 +34,24 @@ jobs:
           gradle-version: '8.7'
           validate-wrappers: false
 
+      - name: Prepare release signing key (optional)
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+          else
+            echo "No signing key configured; release APK will be unsigned."
+          fi
+
       - name: Build Release APK
         run: gradle assembleRelease --stacktrace
 
@@ -46,24 +64,25 @@ jobs:
       - name: Upload Release APK (artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: aptechka-release-apk
+          name: medexpiry-release-apk
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
 
       - name: Upload Debug APK (artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: aptechka-debug-apk
+          name: medexpiry-debug-apk
           path: app/build/outputs/apk/debug/*.apk
 
       - name: Prepare APKs
         run: |
           mkdir -p dist
-          DEBUG_APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -1)
-          RELEASE_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
-          cp "$DEBUG_APK" dist/Aptechka-debug.apk
+          DEBUG_APK=$(find app/build/outputs/apk/debug -name "*.apk" -print -quit)
+          RELEASE_APK=$(find app/build/outputs/apk/release -name "*.apk" -print -quit)
+          test -n "$DEBUG_APK" || { echo "Debug APK was not produced"; exit 1; }
+          cp "$DEBUG_APK" dist/MedExpiry-debug.apk
           if [ -n "$RELEASE_APK" ]; then
-            cp "$RELEASE_APK" dist/Aptechka-release.apk
+            cp "$RELEASE_APK" dist/MedExpiry-release.apk
           fi
           ls -la dist/
 
