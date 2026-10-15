@@ -11,6 +11,7 @@ import com.medexpiry.app.MainActivity
 import com.medexpiry.app.MedExpiryApp
 import com.medexpiry.app.R
 import com.medexpiry.app.data.Medicine
+import com.medexpiry.app.data.UserPreferences
 import java.time.LocalDate
 
 class ExpiryCheckWorker(
@@ -23,10 +24,13 @@ class ExpiryCheckWorker(
         val medicines = repository.getAllOnce()
         val today = LocalDate.now()
 
+        val notifyDays = UserPreferences.get(applicationContext).settings.value.notifyDays
+            .map { it.toLong() }
+            .toSet()
+
         medicines.forEach { medicine ->
             val daysLeft = medicine.daysUntilExpiration()
-            // Уведомляем за 30, 14, 7, 3, 1 день и в день истечения
-            if (daysLeft in listOf(30L, 14L, 7L, 3L, 1L, 0L) || daysLeft < 0) {
+            if (daysLeft in notifyDays || daysLeft < 0) {
                 sendNotification(medicine, daysLeft)
             }
         }

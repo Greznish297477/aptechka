@@ -20,6 +20,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.medexpiry.app.data.UserPreferences
 import com.medexpiry.app.ui.*
 import com.medexpiry.app.util.AppUpdater
 import com.medexpiry.app.worker.NotificationScheduler
@@ -42,15 +43,19 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Удаляем старые APK обновлений, чтобы не засорять память
         AppUpdater.cleanupDownloadedApks(this)
-
         NotificationScheduler.scheduleAll(this)
 
         val app = application as MedExpiryApp
+        val preferences = UserPreferences.get(this)
 
         setContent {
-            MedExpiryTheme {
+            val settings by preferences.settings.collectAsState()
+
+            MedExpiryTheme(
+                themeMode = settings.themeMode,
+                colorStyle = settings.colorStyle
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -58,7 +63,7 @@ class MainActivity : ComponentActivity() {
                     val viewModel: MedicineViewModel = viewModel(
                         factory = MedicineViewModelFactory(app.repository)
                     )
-                    AppNavigation(viewModel)
+                    AppNavigation(viewModel, preferences)
                 }
             }
         }
@@ -66,14 +71,19 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AppNavigation(viewModel: MedicineViewModel) {
+fun AppNavigation(
+    viewModel: MedicineViewModel,
+    preferences: UserPreferences
+) {
     val navController = rememberNavController()
     val medicines by viewModel.medicines.collectAsState()
+    val settings by preferences.settings.collectAsState()
 
     NavHost(navController = navController, startDestination = "list") {
         composable("list") {
             MedicineListScreen(
                 medicines = medicines,
+                settings = settings,
                 onAddClick = { navController.navigate("add") },
                 onItemClick = { medicine ->
                     navController.navigate("edit/${medicine.id}")
@@ -82,7 +92,15 @@ fun AppNavigation(viewModel: MedicineViewModel) {
                 onImport = { list, replace, onDone ->
                     viewModel.importMedicines(list, replace, onDone)
                 },
-                getAllMedicines = { viewModel.getAllOnce() }
+                getAllMedicines = { viewModel.getAllOnce() },
+                onOpenSettings = { navController.navigate("settings") }
+            )
+        }
+
+        composable("settings") {
+            SettingsScreen(
+                preferences = preferences,
+                onBack = { navController.popBackStack() }
             )
         }
 

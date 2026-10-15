@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.outlined.FileUpload
@@ -36,8 +37,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
+import com.medexpiry.app.data.AppSettings
 import com.medexpiry.app.data.Medicine
-import com.medexpiry.app.data.MedicineStatus
+import com.medexpiry.app.data.SortOrder
+import com.medexpiry.app.data.AppSettings
+import com.medexpiry.app.data.Medicine
+import com.medexpiry.app.data.SortOrderStatus
 import com.medexpiry.app.util.AppUpdater
 import com.medexpiry.app.util.BackupManager
 import kotlinx.coroutines.Dispatchers
@@ -49,11 +54,13 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun MedicineListScreen(
     medicines: List<Medicine>,
+    settings: AppSettings,
     onAddClick: () -> Unit,
     onItemClick: (Medicine) -> Unit,
     onDelete: (Medicine) -> Unit,
     onImport: (List<Medicine>, Boolean, (Int) -> Unit) -> Unit,
-    getAllMedicines: suspend () -> List<Medicine>
+    getAllMedicines: suspend () -> List<Medicine>,
+    onOpenSettings: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -73,6 +80,7 @@ fun MedicineListScreen(
     // Автопроверка обновлений при открытии
     LaunchedEffect(Unit) {
         AppUpdater.cleanupDownloadedApks(context)
+        if (!settings.autoCheckUpdates) return@LaunchedEffect
         updateChecking = true
         when (val r = AppUpdater.checkForUpdate(context)) {
             is AppUpdater.CheckResult.Available -> {
@@ -80,7 +88,7 @@ fun MedicineListScreen(
                 showUpdateDialog = true
             }
             is AppUpdater.CheckResult.UpToDate -> { }
-            is AppUpdater.CheckResult.Error -> { /* тихо при автопроверке */ }
+            is AppUpdater.CheckResult.Error -> { }
         }
         updateChecking = false
     }
@@ -134,19 +142,24 @@ fun MedicineListScreen(
         }
     }
 
-    val filtered = remember(medicines, searchQuery) {
-        if (searchQuery.isBlank()) medicines
+    val filtered = remember(medicines, searchQuery, settings.sortOrder) {
+        val base = if (searchQuery.isBlank()) medicines
         else medicines.filter {
             it.name.contains(searchQuery, ignoreCase = true) ||
                     it.notes.contains(searchQuery, ignoreCase = true)
         }
+        when (settings.sortOrder) {
+            SortOrder.BY_NAME -> base.sortedBy { it.name.lowercase() }
+            SortOrder.BY_ADDED -> base.sortedByDescending { it.createdAt }
+            SortOrder.BY_EXPIRY -> base // уже по сроку из БД
+        }
     }
 
-    val urgent = remember(filtered) {
-        filtered.filter { it.daysUntilExpiration() <= 30 }
+    val urgent = remember(filtered, settings.urgentDays) {
+        filtered.filter { it.daysUntilExpiration() <= settings.urgentDays }
     }
-    val normal = remember(filtered) {
-        filtered.filter { it.daysUntilExpiration() > 30 }
+    val normal = remember(filtered, settings.urgentDays) {
+        filtered.filter { it.daysUntilExpiration() > settings.urgentDays }
     }
 
     // Сохранение бэкапа
@@ -257,6 +270,16 @@ fun MedicineListScreen(
                                 }
                             )
                             DropdownMenuItem(
+                                text = { Text("Настройки") },
+                                onClick = {
+                                    menuExpanded = false
+                                    onOpenSettings()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Settings, contentDescription = null)
+                                }
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Проверить обновления") },
                                 onClick = {
                                     menuExpanded = false
@@ -332,6 +355,8 @@ fun MedicineListScreen(
                             items(urgent, key = { it.id }) { medicine ->
                                 MedicineCard(
                                     medicine = medicine,
+                                    showQuantity = settings.showQuantityOnCard,
+                                    compact = settings.compactCards,
                                     onClick = { onItemClick(medicine) },
                                     onDelete = { onDelete(medicine) }
                                 )
@@ -350,6 +375,8 @@ fun MedicineListScreen(
                             items(normal, key = { it.id }) { medicine ->
                                 MedicineCard(
                                     medicine = medicine,
+                                    showQuantity = settings.showQuantityOnCard,
+                                    compact = settings.compactCards,
                                     onClick = { onItemClick(medicine) },
                                     onDelete = { onDelete(medicine) }
                                 )
@@ -549,6 +576,8 @@ private fun EmptyState(hasAny: Boolean) {
 @Composable
 fun MedicineCard(
     medicine: Medicine,
+    showQuantity: Boolean = true,
+    compact: Boolean = false,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -569,21 +598,21 @@ fun MedicineCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(if (compact) 12.dp else 18.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(if (compact) 8.dp else 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             MedicineImage(
                 imageUrl = medicine.imageUrl,
                 modifier = Modifier
-                    .size(68.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .size(if (compact) 52.dp else 68.dp)
+                    .clip(RoundedCornerShape(if (compact) 10.dp else 14.dp))
             )
 
             Spacer(Modifier.width(14.dp))
@@ -618,7 +647,7 @@ fun MedicineCard(
                     )
                 }
 
-                if (medicine.quantity.isNotBlank()) {
+                if (showQuantity && medicine.quantity.isNotBlank()) {
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = medicine.quantity,
