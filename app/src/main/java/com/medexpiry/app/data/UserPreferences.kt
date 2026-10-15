@@ -9,34 +9,40 @@ import kotlinx.coroutines.flow.asStateFlow
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 enum class ColorStyle {
-    INDIGO,   // индиго + бирюза
-    GREEN,    // медицинский зелёный
-    TEAL,     // бирюзовый
-    PURPLE,   // фиолетовый
-    ORANGE,   // тёплый оранжевый
-    BLUE      // классический синий
+    INDIGO, GREEN, TEAL, PURPLE, ORANGE, BLUE
 }
 
 enum class SortOrder {
-    BY_EXPIRY,   // по сроку годности
-    BY_NAME,     // по названию
-    BY_ADDED     // по дате добавления
+    BY_EXPIRY, BY_NAME, BY_ADDED
+}
+
+enum class TextSizeOption {
+    SMALL, NORMAL, LARGE
+}
+
+enum class CardStyle {
+    ROUNDED,   // сильно скруглённые
+    SOFT,      // обычные
+    SQUARE     // почти квадратные
 }
 
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val colorStyle: ColorStyle = ColorStyle.INDIGO,
     val sortOrder: SortOrder = SortOrder.BY_EXPIRY,
-    val urgentDays: Int = 30,           // «требуют внимания» если ≤ N дней
+    val urgentDays: Int = 30,
     val notifyDays: Set<Int> = setOf(30, 14, 7, 3, 1, 0),
     val autoCheckUpdates: Boolean = true,
     val showQuantityOnCard: Boolean = true,
-    val compactCards: Boolean = false
+    val compactCards: Boolean = false,
+    // новые (значения по умолчанию = прежнее поведение)
+    val textSize: TextSizeOption = TextSizeOption.NORMAL,
+    val showImages: Boolean = true,
+    val showNotesOnCard: Boolean = false,
+    val groupByUrgency: Boolean = true,
+    val cardStyle: CardStyle = CardStyle.SOFT
 )
 
-/**
- * Настройки пользователя (SharedPreferences + StateFlow для Compose).
- */
 class UserPreferences(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -51,17 +57,14 @@ class UserPreferences(context: Context) {
     }
 
     private fun load(): AppSettings {
-        val theme = try {
-            ThemeMode.valueOf(prefs.getString(KEY_THEME, ThemeMode.SYSTEM.name)!!)
-        } catch (_: Exception) { ThemeMode.SYSTEM }
-
-        val color = try {
-            ColorStyle.valueOf(prefs.getString(KEY_COLOR, ColorStyle.INDIGO.name)!!)
-        } catch (_: Exception) { ColorStyle.INDIGO }
-
-        val sort = try {
-            SortOrder.valueOf(prefs.getString(KEY_SORT, SortOrder.BY_EXPIRY.name)!!)
-        } catch (_: Exception) { SortOrder.BY_EXPIRY }
+        fun <T : Enum<T>> enumOr(key: String, fallback: T, parser: (String) -> T): T {
+            return try {
+                val s = prefs.getString(key, null) ?: return fallback
+                parser(s)
+            } catch (_: Exception) {
+                fallback
+            }
+        }
 
         val notifyStr = prefs.getString(KEY_NOTIFY, "30,14,7,3,1,0") ?: "30,14,7,3,1,0"
         val notify = notifyStr.split(",")
@@ -70,14 +73,19 @@ class UserPreferences(context: Context) {
             .ifEmpty { setOf(30, 14, 7, 3, 1, 0) }
 
         return AppSettings(
-            themeMode = theme,
-            colorStyle = color,
-            sortOrder = sort,
+            themeMode = enumOr(KEY_THEME, ThemeMode.SYSTEM) { ThemeMode.valueOf(it) },
+            colorStyle = enumOr(KEY_COLOR, ColorStyle.INDIGO) { ColorStyle.valueOf(it) },
+            sortOrder = enumOr(KEY_SORT, SortOrder.BY_EXPIRY) { SortOrder.valueOf(it) },
             urgentDays = prefs.getInt(KEY_URGENT, 30).coerceIn(1, 365),
             notifyDays = notify,
             autoCheckUpdates = prefs.getBoolean(KEY_AUTO_UPDATE, true),
             showQuantityOnCard = prefs.getBoolean(KEY_SHOW_QTY, true),
-            compactCards = prefs.getBoolean(KEY_COMPACT, false)
+            compactCards = prefs.getBoolean(KEY_COMPACT, false),
+            textSize = enumOr(KEY_TEXT, TextSizeOption.NORMAL) { TextSizeOption.valueOf(it) },
+            showImages = prefs.getBoolean(KEY_IMAGES, true),
+            showNotesOnCard = prefs.getBoolean(KEY_NOTES, false),
+            groupByUrgency = prefs.getBoolean(KEY_GROUP, true),
+            cardStyle = enumOr(KEY_CARD, CardStyle.SOFT) { CardStyle.valueOf(it) }
         )
     }
 
@@ -91,6 +99,11 @@ class UserPreferences(context: Context) {
             .putBoolean(KEY_AUTO_UPDATE, s.autoCheckUpdates)
             .putBoolean(KEY_SHOW_QTY, s.showQuantityOnCard)
             .putBoolean(KEY_COMPACT, s.compactCards)
+            .putString(KEY_TEXT, s.textSize.name)
+            .putBoolean(KEY_IMAGES, s.showImages)
+            .putBoolean(KEY_NOTES, s.showNotesOnCard)
+            .putBoolean(KEY_GROUP, s.groupByUrgency)
+            .putString(KEY_CARD, s.cardStyle.name)
             .apply()
     }
 
@@ -104,6 +117,11 @@ class UserPreferences(context: Context) {
         private const val KEY_AUTO_UPDATE = "auto_check_updates"
         private const val KEY_SHOW_QTY = "show_quantity"
         private const val KEY_COMPACT = "compact_cards"
+        private const val KEY_TEXT = "text_size"
+        private const val KEY_IMAGES = "show_images"
+        private const val KEY_NOTES = "show_notes"
+        private const val KEY_GROUP = "group_urgency"
+        private const val KEY_CARD = "card_style"
 
         @Volatile private var instance: UserPreferences? = null
 

@@ -40,6 +40,7 @@ import coil.compose.SubcomposeAsyncImage
 import com.medexpiry.app.data.AppSettings
 import com.medexpiry.app.data.Medicine
 import com.medexpiry.app.data.MedicineStatus
+import com.medexpiry.app.data.CardStyle
 import com.medexpiry.app.data.SortOrder
 import com.medexpiry.app.util.AppUpdater
 import com.medexpiry.app.util.BackupManager
@@ -339,42 +340,62 @@ fun MedicineListScreen(
                 } else {
                     LazyColumn(
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 88.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(if (settings.compactCards) 6.dp else 10.dp)
                     ) {
-                        if (urgent.isNotEmpty()) {
-                            item {
-                                SectionHeader(
-                                    title = "Требуют внимания",
-                                    count = urgent.size,
-                                    icon = Icons.Outlined.WarningAmber,
-                                    color = StatusColors.Critical
-                                )
+                        if (settings.groupByUrgency) {
+                            if (urgent.isNotEmpty()) {
+                                item {
+                                    SectionHeader(
+                                        title = "Требуют внимания",
+                                        count = urgent.size,
+                                        icon = Icons.Outlined.WarningAmber,
+                                        color = StatusColors.Critical
+                                    )
+                                }
+                                items(urgent, key = { it.id }) { medicine ->
+                                    MedicineCard(
+                                        medicine = medicine,
+                                        showQuantity = settings.showQuantityOnCard,
+                                        showImage = settings.showImages,
+                                        showNotes = settings.showNotesOnCard,
+                                        compact = settings.compactCards,
+                                        cardStyle = settings.cardStyle,
+                                        onClick = { onItemClick(medicine) },
+                                        onDelete = { onDelete(medicine) }
+                                    )
+                                }
                             }
-                            items(urgent, key = { it.id }) { medicine ->
+                            if (normal.isNotEmpty()) {
+                                item {
+                                    SectionHeader(
+                                        title = "Всё в порядке",
+                                        count = normal.size,
+                                        icon = Icons.Outlined.Inventory2,
+                                        color = StatusColors.Safe
+                                    )
+                                }
+                                items(normal, key = { it.id }) { medicine ->
+                                    MedicineCard(
+                                        medicine = medicine,
+                                        showQuantity = settings.showQuantityOnCard,
+                                        showImage = settings.showImages,
+                                        showNotes = settings.showNotesOnCard,
+                                        compact = settings.compactCards,
+                                        cardStyle = settings.cardStyle,
+                                        onClick = { onItemClick(medicine) },
+                                        onDelete = { onDelete(medicine) }
+                                    )
+                                }
+                            }
+                        } else {
+                            items(filtered, key = { it.id }) { medicine ->
                                 MedicineCard(
                                     medicine = medicine,
                                     showQuantity = settings.showQuantityOnCard,
+                                    showImage = settings.showImages,
+                                    showNotes = settings.showNotesOnCard,
                                     compact = settings.compactCards,
-                                    onClick = { onItemClick(medicine) },
-                                    onDelete = { onDelete(medicine) }
-                                )
-                            }
-                        }
-
-                        if (normal.isNotEmpty()) {
-                            item {
-                                SectionHeader(
-                                    title = "Всё в порядке",
-                                    count = normal.size,
-                                    icon = Icons.Outlined.Inventory2,
-                                    color = StatusColors.Safe
-                                )
-                            }
-                            items(normal, key = { it.id }) { medicine ->
-                                MedicineCard(
-                                    medicine = medicine,
-                                    showQuantity = settings.showQuantityOnCard,
-                                    compact = settings.compactCards,
+                                    cardStyle = settings.cardStyle,
                                     onClick = { onItemClick(medicine) },
                                     onDelete = { onDelete(medicine) }
                                 )
@@ -575,7 +596,10 @@ private fun EmptyState(hasAny: Boolean) {
 fun MedicineCard(
     medicine: Medicine,
     showQuantity: Boolean = true,
+    showImage: Boolean = true,
+    showNotes: Boolean = false,
     compact: Boolean = false,
+    cardStyle: CardStyle = CardStyle.SOFT,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -591,12 +615,22 @@ fun MedicineCard(
     )
     val days = medicine.daysUntilExpiration()
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+    val corner = when (cardStyle) {
+        CardStyle.ROUNDED -> if (compact) 16.dp else 22.dp
+        CardStyle.SOFT -> if (compact) 12.dp else 18.dp
+        CardStyle.SQUARE -> if (compact) 6.dp else 8.dp
+    }
+    val imgCorner = when (cardStyle) {
+        CardStyle.ROUNDED -> if (compact) 12.dp else 16.dp
+        CardStyle.SOFT -> if (compact) 10.dp else 14.dp
+        CardStyle.SQUARE -> if (compact) 4.dp else 6.dp
+    }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(if (compact) 12.dp else 18.dp),
+        shape = RoundedCornerShape(corner),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
@@ -606,14 +640,15 @@ fun MedicineCard(
                 .padding(if (compact) 8.dp else 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            MedicineImage(
-                imageUrl = medicine.imageUrl,
-                modifier = Modifier
-                    .size(if (compact) 52.dp else 68.dp)
-                    .clip(RoundedCornerShape(if (compact) 10.dp else 14.dp))
-            )
-
-            Spacer(Modifier.width(14.dp))
+            if (showImage) {
+                MedicineImage(
+                    imageUrl = medicine.imageUrl,
+                    modifier = Modifier
+                        .size(if (compact) 52.dp else 68.dp)
+                        .clip(RoundedCornerShape(imgCorner))
+                )
+                Spacer(Modifier.width(14.dp))
+            }
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -651,6 +686,16 @@ fun MedicineCard(
                         text = medicine.quantity,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (showNotes && medicine.notes.isNotBlank()) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = medicine.notes,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }

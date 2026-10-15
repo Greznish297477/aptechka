@@ -16,10 +16,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.medexpiry.app.data.CardStyle
 import com.medexpiry.app.data.ColorStyle
 import com.medexpiry.app.data.SortOrder
+import com.medexpiry.app.data.TextSizeOption
 import com.medexpiry.app.data.ThemeMode
 import com.medexpiry.app.data.UserPreferences
 import com.medexpiry.app.util.AppUpdater
@@ -31,6 +34,7 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val settings by preferences.settings.collectAsState()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -111,6 +115,42 @@ fun SettingsScreen(
                 )
             }
 
+            SettingCard {
+                Text("Размер текста", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        TextSizeOption.SMALL to "Мелкий",
+                        TextSizeOption.NORMAL to "Обычный",
+                        TextSizeOption.LARGE to "Крупный"
+                    ).forEach { (opt, label) ->
+                        FilterChip(
+                            selected = settings.textSize == opt,
+                            onClick = { preferences.update { it.copy(textSize = opt) } },
+                            label = { Text(label) }
+                        )
+                    }
+                }
+            }
+
+            SettingCard {
+                Text("Форма карточек", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        CardStyle.ROUNDED to "Круглые",
+                        CardStyle.SOFT to "Мягкие",
+                        CardStyle.SQUARE to "Прямые"
+                    ).forEach { (style, label) ->
+                        FilterChip(
+                            selected = settings.cardStyle == style,
+                            onClick = { preferences.update { it.copy(cardStyle = style) } },
+                            label = { Text(label) }
+                        )
+                    }
+                }
+            }
+
             SectionTitle("Список")
 
             SettingCard {
@@ -160,21 +200,38 @@ fun SettingsScreen(
 
             SettingCard {
                 SwitchRow(
+                    title = "Группировать по срочности",
+                    subtitle = "Отдельные блоки «внимание» и «в порядке»",
+                    checked = settings.groupByUrgency,
+                    onCheckedChange = { checked -> preferences.update { it.copy(groupByUrgency = checked) } }
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                SwitchRow(
+                    title = "Картинки на карточках",
+                    subtitle = "Показывать фото лекарства",
+                    checked = settings.showImages,
+                    onCheckedChange = { checked -> preferences.update { it.copy(showImages = checked) } }
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                SwitchRow(
                     title = "Количество на карточке",
-                    subtitle = "Показывать поле «количество»",
+                    subtitle = "Поле «количество»",
                     checked = settings.showQuantityOnCard,
-                    onCheckedChange = { checked ->
-                        preferences.update { it.copy(showQuantityOnCard = checked) }
-                    }
+                    onCheckedChange = { checked -> preferences.update { it.copy(showQuantityOnCard = checked) } }
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                SwitchRow(
+                    title = "Заметки на карточке",
+                    subtitle = "Короткий текст заметок в списке",
+                    checked = settings.showNotesOnCard,
+                    onCheckedChange = { checked -> preferences.update { it.copy(showNotesOnCard = checked) } }
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 SwitchRow(
                     title = "Компактные карточки",
                     subtitle = "Меньше отступы в списке",
                     checked = settings.compactCards,
-                    onCheckedChange = { checked ->
-                        preferences.update { it.copy(compactCards = checked) }
-                    }
+                    onCheckedChange = { checked -> preferences.update { it.copy(compactCards = checked) } }
                 )
             }
 
@@ -221,13 +278,11 @@ fun SettingsScreen(
                     title = "Проверять обновления при запуске",
                     subtitle = "GitHub Releases",
                     checked = settings.autoCheckUpdates,
-                    onCheckedChange = { checked ->
-                        preferences.update { it.copy(autoCheckUpdates = checked) }
-                    }
+                    onCheckedChange = { checked -> preferences.update { it.copy(autoCheckUpdates = checked) } }
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Версия приложения: ${AppUpdater.currentVersionName(androidx.compose.ui.platform.LocalContext.current)}",
+                    "Версия приложения: ${AppUpdater.currentVersionName(context)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

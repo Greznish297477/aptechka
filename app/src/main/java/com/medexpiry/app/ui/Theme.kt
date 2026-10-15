@@ -5,7 +5,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.medexpiry.app.data.ColorStyle
+import com.medexpiry.app.data.TextSizeOption
 import com.medexpiry.app.data.ThemeMode
+import androidx.compose.ui.unit.sp
 
 private data class Palette(
     val primary: Color,
@@ -48,6 +50,7 @@ private fun palette(style: ColorStyle): Palette = when (style) {
 fun MedExpiryTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     colorStyle: ColorStyle = ColorStyle.INDIGO,
+    textSize: TextSizeOption = TextSizeOption.NORMAL,
     content: @Composable () -> Unit
 ) {
     val darkTheme = when (themeMode) {
@@ -100,7 +103,30 @@ fun MedExpiryTheme(
         )
     }
 
-    MaterialTheme(colorScheme = colors, typography = Typography(), content = content)
+    val scale = when (textSize) {
+        TextSizeOption.SMALL -> 0.90f
+        TextSizeOption.NORMAL -> 1.0f
+        TextSizeOption.LARGE -> 1.15f
+    }
+    val base = Typography()
+    val typography = Typography(
+        displayLarge = base.displayLarge.copy(fontSize = base.displayLarge.fontSize * scale),
+        displayMedium = base.displayMedium.copy(fontSize = base.displayMedium.fontSize * scale),
+        displaySmall = base.displaySmall.copy(fontSize = base.displaySmall.fontSize * scale),
+        headlineLarge = base.headlineLarge.copy(fontSize = base.headlineLarge.fontSize * scale),
+        headlineMedium = base.headlineMedium.copy(fontSize = base.headlineMedium.fontSize * scale),
+        headlineSmall = base.headlineSmall.copy(fontSize = base.headlineSmall.fontSize * scale),
+        titleLarge = base.titleLarge.copy(fontSize = base.titleLarge.fontSize * scale),
+        titleMedium = base.titleMedium.copy(fontSize = base.titleMedium.fontSize * scale),
+        titleSmall = base.titleSmall.copy(fontSize = base.titleSmall.fontSize * scale),
+        bodyLarge = base.bodyLarge.copy(fontSize = base.bodyLarge.fontSize * scale),
+        bodyMedium = base.bodyMedium.copy(fontSize = base.bodyMedium.fontSize * scale),
+        bodySmall = base.bodySmall.copy(fontSize = base.bodySmall.fontSize * scale),
+        labelLarge = base.labelLarge.copy(fontSize = base.labelLarge.fontSize * scale),
+        labelMedium = base.labelMedium.copy(fontSize = base.labelMedium.fontSize * scale),
+        labelSmall = base.labelSmall.copy(fontSize = base.labelSmall.fontSize * scale)
+    )
+    MaterialTheme(colorScheme = colors, typography = typography, content = content)
 }
 
 object StatusColors {
