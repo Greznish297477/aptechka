@@ -28,6 +28,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
+          # Не проверяем local wrapper — сборка идёт через Gradle из Action
+          validate-wrappers: false
 
       - name: Create debug keystore
         run: |
