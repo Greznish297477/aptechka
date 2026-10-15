@@ -61,3 +61,21 @@ APK: `app/build/outputs/apk/debug/app-debug.apk`
 2. Tag: например `v1.0.0`
 3. Publish release
 4. Actions соберёт APK и прикрепит к релизу автоматически
+
+## Скрипты Git / Release (Windows)
+
+```powershell
+# Отправить код
+.\push.ps1
+.\push.ps1 "Описание изменений"
+
+# Создать релиз (тег + push → GitHub Actions соберёт APK)
+.\release.ps1
+.\release.ps1 1.1.0
+```
+
+Если PowerShell ругается на политику:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```

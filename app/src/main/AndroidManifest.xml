@@ -41,6 +41,14 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".util.InstallResultReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.medexpiry.app.INSTALL_STATUS" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
