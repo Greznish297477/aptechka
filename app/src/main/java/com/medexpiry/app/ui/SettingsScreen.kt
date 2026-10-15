@@ -283,6 +283,21 @@ fun SettingsScreen(
                     settings.compactCards) {
                     preferences.update { s -> s.copy(compactCards = it) }
                 }
+                SoftDivider()
+                SwitchRow("Искать в заметках", "Учитывать заметки при поиске лекарства",
+                    settings.searchNotes) {
+                    preferences.update { s -> s.copy(searchNotes = it) }
+                }
+                SoftDivider()
+                SwitchRow("Показывать просроченные", "Можно отключить, чтобы скрыть их из списка",
+                    settings.showExpiredMedicines) {
+                    preferences.update { s -> s.copy(showExpiredMedicines = it) }
+                }
+                SoftDivider()
+                SwitchRow("Счётчик препаратов", "Количество в заголовке главного экрана",
+                    settings.showMedicineCount) {
+                    preferences.update { s -> s.copy(showMedicineCount = it) }
+                }
             }
 
             SectionTitle("Уведомления")

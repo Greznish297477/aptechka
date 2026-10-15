@@ -43,7 +43,11 @@ data class AppSettings(
     val groupByUrgency: Boolean = true,
     val cardStyle: CardStyle = CardStyle.SOFT,
     /** ARGB цвет; 0 = использовать colorStyle */
-    val customPrimaryColor: Int = 0
+    val customPrimaryColor: Int = 0,
+    // Дополнительные параметры списка; значения по умолчанию сохраняют прежнее поведение
+    val searchNotes: Boolean = true,
+    val showExpiredMedicines: Boolean = true,
+    val showMedicineCount: Boolean = true
 )
 
 class UserPreferences(context: Context) {
@@ -89,7 +93,10 @@ class UserPreferences(context: Context) {
             showNotesOnCard = prefs.getBoolean(KEY_NOTES, false),
             groupByUrgency = prefs.getBoolean(KEY_GROUP, true),
             cardStyle = enumOr(KEY_CARD, CardStyle.SOFT) { CardStyle.valueOf(it) },
-            customPrimaryColor = prefs.getInt(KEY_CUSTOM_COLOR, 0)
+            customPrimaryColor = prefs.getInt(KEY_CUSTOM_COLOR, 0),
+            searchNotes = prefs.getBoolean(KEY_SEARCH_NOTES, true),
+            showExpiredMedicines = prefs.getBoolean(KEY_SHOW_EXPIRED, true),
+            showMedicineCount = prefs.getBoolean(KEY_SHOW_COUNT, true)
         )
     }
 
@@ -109,6 +116,9 @@ class UserPreferences(context: Context) {
             .putBoolean(KEY_GROUP, s.groupByUrgency)
             .putString(KEY_CARD, s.cardStyle.name)
             .putInt(KEY_CUSTOM_COLOR, s.customPrimaryColor)
+            .putBoolean(KEY_SEARCH_NOTES, s.searchNotes)
+            .putBoolean(KEY_SHOW_EXPIRED, s.showExpiredMedicines)
+            .putBoolean(KEY_SHOW_COUNT, s.showMedicineCount)
             .apply()
     }
 
@@ -128,6 +138,9 @@ class UserPreferences(context: Context) {
         private const val KEY_GROUP = "group_urgency"
         private const val KEY_CARD = "card_style"
         private const val KEY_CUSTOM_COLOR = "custom_primary"
+        private const val KEY_SEARCH_NOTES = "search_notes"
+        private const val KEY_SHOW_EXPIRED = "show_expired_medicines"
+        private const val KEY_SHOW_COUNT = "show_medicine_count"
 
         @Volatile private var instance: UserPreferences? = null
 

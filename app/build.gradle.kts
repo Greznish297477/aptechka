@@ -4,6 +4,19 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+// Версия берётся из -PappVersionName=1.1.7, а при сборке тега — из имени тега v1.1.7.
+// versionCode вычисляется из SemVer и всегда растёт при увеличении версии.
+val appVersionName = providers.gradleProperty("appVersionName")
+    .orElse(providers.environmentVariable("GITHUB_REF_NAME").map { it.removePrefix("v").removePrefix("V") })
+    .orElse("1.1.7")
+    .get()
+val versionParts = appVersionName.split(Regex("[^0-9]+"))
+    .filter { it.isNotBlank() }
+    .map { it.toIntOrNull() ?: 0 }
+val appVersionCode = ((versionParts.getOrElse(0) { 1 }.toLong() * 1_000_000L) +
+    (versionParts.getOrElse(1) { 0 }.toLong() * 1_000L) +
+    versionParts.getOrElse(2) { 0 }.toLong()).coerceAtLeast(1L)
+
 android {
     namespace = "com.medexpiry.app"
     compileSdk = 34
@@ -12,8 +25,8 @@ android {
         applicationId = "com.medexpiry.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 9
-        versionName = "1.1.6"
+        versionCode = appVersionCode.toInt()
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -21,24 +34,36 @@ android {
         }
     }
 
-    // Единый keystore проекта — одна подпись для всех сборок (CI и локально)
-    // Важно: не менять, иначе обновления не установятся поверх старой версии
-    signingConfigs {
-        create("release") {
-            storeFile = file("keystore/aptechka.jks")
-            storePassword = "aptechka2024"
-            keyAlias = "aptechka"
-            keyPassword = "aptechka2024"
+    // Подпись релиза берётся только из GitHub Actions secrets / переменных окружения.
+    // Не храните keystore или пароли в исходниках.
+    val releaseStoreFile = System.getenv("ANDROID_KEYSTORE_FILE")
+    val releaseStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+    val releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
+    val releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+
+    if (!releaseStoreFile.isNullOrBlank() &&
+        !releaseStorePassword.isNullOrBlank() &&
+        !releaseKeyAlias.isNullOrBlank() &&
+        !releaseKeyPassword.isNullOrBlank()
+    ) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
         }
     }
 
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("release")
         }
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            if (!releaseStoreFile.isNullOrBlank() && !releaseStorePassword.isNullOrBlank() && !releaseKeyAlias.isNullOrBlank() && !releaseKeyPassword.isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

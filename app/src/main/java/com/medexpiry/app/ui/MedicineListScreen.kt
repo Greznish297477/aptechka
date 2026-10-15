@@ -146,16 +146,21 @@ fun MedicineListScreen(
         }
     }
 
-    val filtered = remember(medicines, searchQuery, settings.sortOrder) {
-        val base = if (searchQuery.isBlank()) medicines
-        else medicines.filter {
-            it.name.contains(searchQuery, ignoreCase = true) ||
-                    it.notes.contains(searchQuery, ignoreCase = true)
+    val filtered = remember(
+        medicines, searchQuery, settings.sortOrder,
+        settings.searchNotes, settings.showExpiredMedicines
+    ) {
+        val searched = if (searchQuery.isBlank()) medicines
+        else medicines.filter { medicine ->
+            medicine.name.contains(searchQuery, ignoreCase = true) ||
+                (settings.searchNotes && medicine.notes.contains(searchQuery, ignoreCase = true))
         }
+        val visible = if (settings.showExpiredMedicines) searched
+            else searched.filter { it.daysUntilExpiration() >= 0 }
         when (settings.sortOrder) {
-            SortOrder.BY_NAME -> base.sortedBy { it.name.lowercase() }
-            SortOrder.BY_ADDED -> base.sortedByDescending { it.createdAt }
-            SortOrder.BY_EXPIRY -> base // уже по сроку из БД
+            SortOrder.BY_NAME -> visible.sortedBy { it.name.lowercase() }
+            SortOrder.BY_ADDED -> visible.sortedByDescending { it.createdAt }
+            SortOrder.BY_EXPIRY -> visible // уже по сроку из БД
         }
     }
 
@@ -230,7 +235,7 @@ fun MedicineListScreen(
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleLarge
                         )
-                        if (medicines.isNotEmpty()) {
+                        if (settings.showMedicineCount && medicines.isNotEmpty()) {
                             Text(
                                 "${medicines.size} препаратов",
                                 style = MaterialTheme.typography.bodySmall,

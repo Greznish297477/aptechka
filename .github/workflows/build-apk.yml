@@ -34,11 +34,42 @@ jobs:
           gradle-version: '8.7'
           validate-wrappers: false
 
+      - name: Prepare release signing key
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+          else
+            if [[ "$GITHUB_REF" == refs/tags/v* || "$GITHUB_EVENT_NAME" == "release" ]]; then
+              echo "ERROR: Release APK must be signed with the same keystore as the installed app. Configure the four ANDROID_KEYSTORE_* / ANDROID_KEY_* GitHub Actions secrets."
+              exit 1
+            fi
+            echo "No signing key configured for this non-release build."
+          fi
+
+      - name: Set app version from tag
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_NAME" == v* ]]; then
+            echo "APP_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          else
+            echo "APP_VERSION=1.1.7" >> "$GITHUB_ENV"
+          fi
+
       - name: Build Release APK
-        run: gradle assembleRelease --stacktrace
+        run: gradle assembleRelease -PappVersionName="$APP_VERSION" --stacktrace
 
       - name: Build Debug APK
-        run: gradle assembleDebug --stacktrace
+        run: gradle assembleDebug -PappVersionName="$APP_VERSION" --stacktrace
 
       - name: List APK outputs
         run: find app/build/outputs -name "*.apk" -ls || true
