@@ -39,10 +39,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.medexpiry.app.data.AppSettings
 import com.medexpiry.app.data.Medicine
+import com.medexpiry.app.data.MedicineStatus
 import com.medexpiry.app.data.SortOrder
-import com.medexpiry.app.data.AppSettings
-import com.medexpiry.app.data.Medicine
-import com.medexpiry.app.data.SortOrderStatus
 import com.medexpiry.app.util.AppUpdater
 import com.medexpiry.app.util.BackupManager
 import kotlinx.coroutines.Dispatchers
