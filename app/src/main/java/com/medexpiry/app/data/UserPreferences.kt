@@ -48,8 +48,10 @@ data class AppSettings(
     val searchNotes: Boolean = true,
     val showExpiredMedicines: Boolean = true,
     val showMedicineCount: Boolean = true,
-    /** Полупрозрачное оформление Liquid Glass */
-    val liquidGlass: Boolean = false
+    /** Полностью чёрный фон для AMOLED/OLED-экранов */
+    val amoledBlack: Boolean = false,
+    /** Тонкая рамка вокруг карточек лекарств */
+    val cardBorders: Boolean = false
 )
 
 class UserPreferences(context: Context) {
@@ -99,7 +101,8 @@ class UserPreferences(context: Context) {
             searchNotes = prefs.getBoolean(KEY_SEARCH_NOTES, true),
             showExpiredMedicines = prefs.getBoolean(KEY_SHOW_EXPIRED, true),
             showMedicineCount = prefs.getBoolean(KEY_SHOW_COUNT, true),
-            liquidGlass = prefs.getBoolean(KEY_LIQUID_GLASS, false)
+            amoledBlack = prefs.getBoolean(KEY_AMOLED_BLACK, false),
+            cardBorders = prefs.getBoolean(KEY_CARD_BORDERS, false)
         )
     }
 
@@ -122,7 +125,8 @@ class UserPreferences(context: Context) {
             .putBoolean(KEY_SEARCH_NOTES, s.searchNotes)
             .putBoolean(KEY_SHOW_EXPIRED, s.showExpiredMedicines)
             .putBoolean(KEY_SHOW_COUNT, s.showMedicineCount)
-            .putBoolean(KEY_LIQUID_GLASS, s.liquidGlass)
+            .putBoolean(KEY_AMOLED_BLACK, s.amoledBlack)
+            .putBoolean(KEY_CARD_BORDERS, s.cardBorders)
             .apply()
     }
 
@@ -145,7 +149,8 @@ class UserPreferences(context: Context) {
         private const val KEY_SEARCH_NOTES = "search_notes"
         private const val KEY_SHOW_EXPIRED = "show_expired_medicines"
         private const val KEY_SHOW_COUNT = "show_medicine_count"
-        private const val KEY_LIQUID_GLASS = "liquid_glass"
+        private const val KEY_AMOLED_BLACK = "amoled_black"
+        private const val KEY_CARD_BORDERS = "card_borders"
 
         @Volatile private var instance: UserPreferences? = null
 

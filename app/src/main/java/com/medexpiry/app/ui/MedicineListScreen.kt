@@ -302,7 +302,7 @@ fun MedicineListScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (settings.liquidGlass) MaterialTheme.colorScheme.primary.copy(alpha = 0.78f) else MaterialTheme.colorScheme.primary,
+                    containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
@@ -371,6 +371,7 @@ fun MedicineListScreen(
                                         showNotes = settings.showNotesOnCard,
                                         compact = settings.compactCards,
                                         cardStyle = settings.cardStyle,
+                                        showBorder = settings.cardBorders,
                                         onClick = { onItemClick(medicine) },
                                         onDelete = { onDelete(medicine) }
                                     )
@@ -393,6 +394,7 @@ fun MedicineListScreen(
                                         showNotes = settings.showNotesOnCard,
                                         compact = settings.compactCards,
                                         cardStyle = settings.cardStyle,
+                                        showBorder = settings.cardBorders,
                                         onClick = { onItemClick(medicine) },
                                         onDelete = { onDelete(medicine) }
                                     )
@@ -407,6 +409,7 @@ fun MedicineListScreen(
                                     showNotes = settings.showNotesOnCard,
                                     compact = settings.compactCards,
                                     cardStyle = settings.cardStyle,
+                                    showBorder = settings.cardBorders,
                                     onClick = { onItemClick(medicine) },
                                     onDelete = { onDelete(medicine) }
                                 )
@@ -611,6 +614,7 @@ fun MedicineCard(
     showNotes: Boolean = false,
     compact: Boolean = false,
     cardStyle: CardStyle = CardStyle.SOFT,
+    showBorder: Boolean = false,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -643,7 +647,8 @@ fun MedicineCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(corner),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = if (showBorder) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null
     ) {
         Row(
             modifier = Modifier

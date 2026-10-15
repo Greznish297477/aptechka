@@ -71,7 +71,7 @@ fun SettingsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (settings.liquidGlass) MaterialTheme.colorScheme.primary.copy(alpha = 0.78f) else MaterialTheme.colorScheme.primary,
+                    containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
@@ -221,10 +221,10 @@ fun SettingsScreen(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 Spacer(Modifier.height(8.dp))
                 SwitchRow(
-                    "Liquid Glass",
-                    "Стеклянные полупрозрачные карточки и мягкий градиентный фон",
-                    settings.liquidGlass
-                ) { enabled -> preferences.update { it.copy(liquidGlass = enabled) } }
+                    "Чёрный фон AMOLED",
+                    "Экономит заряд на OLED/AMOLED-экранах в тёмной теме",
+                    settings.amoledBlack
+                ) { enabled -> preferences.update { it.copy(amoledBlack = enabled) } }
             }
 
             SectionTitle("Список")
@@ -290,6 +290,11 @@ fun SettingsScreen(
                 SwitchRow("Компактные карточки", "Меньше отступы",
                     settings.compactCards) {
                     preferences.update { s -> s.copy(compactCards = it) }
+                }
+                SoftDivider()
+                SwitchRow("Контуры карточек", "Тонкая рамка вокруг каждого препарата",
+                    settings.cardBorders) {
+                    preferences.update { s -> s.copy(cardBorders = it) }
                 }
                 SoftDivider()
                 SwitchRow("Искать в заметках", "Учитывать заметки при поиске лекарства",

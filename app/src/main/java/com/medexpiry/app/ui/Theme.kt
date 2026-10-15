@@ -112,7 +112,7 @@ fun MedExpiryTheme(
     colorStyle: ColorStyle = ColorStyle.INDIGO,
     textSize: TextSizeOption = TextSizeOption.NORMAL,
     customPrimaryColor: Int = 0,
-    liquidGlass: Boolean = false,
+    amoledBlack: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val darkTheme = when (themeMode) {
@@ -138,13 +138,13 @@ fun MedExpiryTheme(
             onSecondaryContainer = p.secondaryContainer,
             error = Color(0xFFEF9A9A),
             errorContainer = Color(0xFF5C1010),
-            background = if (liquidGlass) Color.Transparent else Color(0xFF12131A),
-            surface = if (liquidGlass) Color(0xCC202A3B) else Color(0xFF1C1D27),
-            surfaceVariant = if (liquidGlass) Color(0xAA3A4962) else Color(0xFF2A2C3A),
+            background = if (amoledBlack) Color.Black else Color(0xFF12131A),
+            surface = if (amoledBlack) Color(0xFF050505) else Color(0xFF1C1D27),
+            surfaceVariant = if (amoledBlack) Color(0xFF151515) else Color(0xFF2A2C3A),
             onBackground = Color(0xFFE4E5ED),
             onSurface = Color(0xFFE4E5ED),
             onSurfaceVariant = Color(0xFFB0B3C0),
-            outline = if (liquidGlass) Color(0x88D7E4FF) else Color(0xFF5A5D6C)
+            outline = if (amoledBlack) Color(0xFF303030) else Color(0xFF5A5D6C)
         )
     } else {
         lightColorScheme(
@@ -159,13 +159,13 @@ fun MedExpiryTheme(
             tertiary = p.primaryLight,
             error = Color(0xFFD32F2F),
             errorContainer = Color(0xFFFFEBEE),
-            background = if (liquidGlass) Color.Transparent else Color(0xFFF5F6FA),
-            surface = if (liquidGlass) Color(0xDFFFFFFF) else Color.White,
-            surfaceVariant = if (liquidGlass) Color(0xBFFFFFFF) else Color(0xFFEEF0F7),
+            background = Color(0xFFF5F6FA),
+            surface = Color.White,
+            surfaceVariant = Color(0xFFEEF0F7),
             onBackground = Color(0xFF1A1B23),
             onSurface = Color(0xFF1A1B23),
             onSurfaceVariant = Color(0xFF4A4C5A),
-            outline = if (liquidGlass) Color(0x88FFFFFF) else Color(0xFFB0B3C0)
+            outline = Color(0xFFB0B3C0)
         )
     }
 
