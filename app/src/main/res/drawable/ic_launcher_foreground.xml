@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Круг-подложка -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.15"
+        android:pathData="M54,28c-14.4,0 -26,11.6 -26,26s11.6,26 26,26 26,-11.6 26,-26 -11.6,-26 -26,-26z"/>
+
+    <!-- Аптечный крест -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M48,38h12c2.2,0 4,1.8 4,4v8h8c2.2,0 4,1.8 4,4v12c0,2.2 -1.8,4 -4,4h-8v8c0,2.2 -1.8,4 -4,4h-12c-2.2,0 -4,-1.8 -4,-4v-8h-8c-2.2,0 -4,-1.8 -4,-4v-12c0,-2.2 1.8,-4 4,-4h8v-8c0,-2.2 1.8,-4 4,-4z"/>
+
+    <!-- Маленькая капсула снизу для акцента -->
+    <path
+        android:fillColor="#80CBC4"
+        android:pathData="M42,78c0,-3.3 2.7,-6 6,-6h12c3.3,0 6,2.7 6,6 0,1.1 -0.3,2.1 -0.8,3h-22.4c-0.5,-0.9 -0.8,-1.9 -0.8,-3z"/>
+</vector>
