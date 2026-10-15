@@ -85,6 +85,7 @@ fun MedExpiryTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     colorStyle: ColorStyle = ColorStyle.INDIGO,
     textSize: TextSizeOption = TextSizeOption.NORMAL,
+    customPrimaryColor: Int = 0,
     content: @Composable () -> Unit
 ) {
     val darkTheme = when (themeMode) {
@@ -92,7 +93,11 @@ fun MedExpiryTheme(
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-    val p = palette(colorStyle)
+    val p = if (customPrimaryColor != 0) {
+        paletteFromColor(Color(customPrimaryColor))
+    } else {
+        palette(colorStyle)
+    }
 
     val colors = if (darkTheme) {
         darkColorScheme(

@@ -55,7 +55,8 @@ class MainActivity : ComponentActivity() {
             MedExpiryTheme(
                 themeMode = settings.themeMode,
                 colorStyle = settings.colorStyle,
-                textSize = settings.textSize
+                textSize = settings.textSize,
+                customPrimaryColor = settings.customPrimaryColor
             ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),

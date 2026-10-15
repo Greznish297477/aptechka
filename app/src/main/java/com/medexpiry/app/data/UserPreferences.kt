@@ -41,7 +41,9 @@ data class AppSettings(
     val showImages: Boolean = true,
     val showNotesOnCard: Boolean = false,
     val groupByUrgency: Boolean = true,
-    val cardStyle: CardStyle = CardStyle.SOFT
+    val cardStyle: CardStyle = CardStyle.SOFT,
+    /** ARGB цвет; 0 = использовать colorStyle */
+    val customPrimaryColor: Int = 0
 )
 
 class UserPreferences(context: Context) {
@@ -86,7 +88,8 @@ class UserPreferences(context: Context) {
             showImages = prefs.getBoolean(KEY_IMAGES, true),
             showNotesOnCard = prefs.getBoolean(KEY_NOTES, false),
             groupByUrgency = prefs.getBoolean(KEY_GROUP, true),
-            cardStyle = enumOr(KEY_CARD, CardStyle.SOFT) { CardStyle.valueOf(it) }
+            cardStyle = enumOr(KEY_CARD, CardStyle.SOFT) { CardStyle.valueOf(it) },
+            customPrimaryColor = prefs.getInt(KEY_CUSTOM_COLOR, 0)
         )
     }
 
@@ -105,6 +108,7 @@ class UserPreferences(context: Context) {
             .putBoolean(KEY_NOTES, s.showNotesOnCard)
             .putBoolean(KEY_GROUP, s.groupByUrgency)
             .putString(KEY_CARD, s.cardStyle.name)
+            .putInt(KEY_CUSTOM_COLOR, s.customPrimaryColor)
             .apply()
     }
 
@@ -123,6 +127,7 @@ class UserPreferences(context: Context) {
         private const val KEY_NOTES = "show_notes"
         private const val KEY_GROUP = "group_urgency"
         private const val KEY_CARD = "card_style"
+        private const val KEY_CUSTOM_COLOR = "custom_primary"
 
         @Volatile private var instance: UserPreferences? = null
 
